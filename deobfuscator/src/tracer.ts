@@ -1,3 +1,18 @@
+/**
+ * Tracer Class
+ * 
+ * The Tracer injects monitoring code into the labeled VM script to track
+ * bytecode execution. It captures:
+ * - Stack operations (push, pop, slice)
+ * - Function calls and returns
+ * - Control flow (jumps, conditionals)
+ * - Variable assignments
+ * - Object property access
+ * 
+ * The tracer generates comprehensive execution logs saved to JSON files
+ * that can be processed by the lifter to reconstruct JavaScript code.
+ */
+
 import traverse from "@babel/traverse";
 import fs from "fs";
 import * as babel from "@babel/core";
@@ -10,6 +25,16 @@ export class Tracer {
   constructor(ast: babel.types.File) {
     this.ast = ast;
   }
+  
+  /**
+   * Traverses statements in the VM and injects tracer code.
+   * 
+   * This method identifies key VM operations and inserts logging code
+   * to capture their execution.
+   * 
+   * @param path - The Babel traversal path
+   * @param node - The block statement to process
+   */
   private traverseStatementsAndInjectTracer(
     path: babel.NodePath<
       babel.types.BlockStatement | babel.types.FunctionExpression
