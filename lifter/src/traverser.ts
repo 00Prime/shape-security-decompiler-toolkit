@@ -1,10 +1,28 @@
+/**
+ * Block Statement Traverser
+ * 
+ * This class traverses and simplifies block statements in the lifted JavaScript.
+ * It performs various optimizations:
+ * - Inlines known variable values
+ * - Removes redundant assignments
+ * - Simplifies expressions
+ * - Tracks variable state across blocks
+ * 
+ * The traverser works recursively through nested block functions,
+ * maintaining a map of variable values to enable constant propagation
+ * and dead code elimination.
+ */
+
 import traverse from "@babel/traverse";
 
+/**
+ * Rules for handling different types of statements during traversal
+ */
 interface Rule {
-  preserve: boolean;
-  update: boolean;
-  replaceKnownIdentifiers: boolean;
-  saveVariable: boolean;
+  preserve: boolean;                    // Keep the statement as-is
+  update: boolean;                      // Update variable map with this statement
+  replaceKnownIdentifiers: boolean;     // Replace identifiers with known values
+  saveVariable: boolean;                // Save the variable assignment
 }
 
 export class BlockStatementTraverser {
@@ -21,13 +39,36 @@ export class BlockStatementTraverser {
     this.variableMap = variableMap;
     this.visited = visited;
   }
+  
+  /**
+   * Checks if a variable name represents a stack variable.
+   * Stack variables are named "s0", "s1", "s2", etc.
+   * 
+   * @param name - The variable name to check
+   * @returns True if this is a stack variable
+   */
   private isStackVariable(name: string) {
     return name.length == 2 && name[0] == "s";
   }
+  
+  /**
+   * Checks if a variable name represents a register variable.
+   * Register variables are named "r0", "r1", "r2", etc.
+   * 
+   * @param name - The variable name to check
+   * @returns True if this is a register variable
+   */
   private isRegisterVaraible(name: string) {
     return name.length == 2 && name[0] == "r";
   }
 
+  /**
+   * Replaces identifiers in an expression with their known values.
+   * Uses the variable map to substitute constants and simplified expressions.
+   * 
+   * @param node - The expression to process
+   * @param path - The traversal path
+   */
   private replaceKnownIdentifiers(
     node: babel.types.Expression,
     path: babel.NodePath<babel.types.Statement>
@@ -39,7 +80,7 @@ export class BlockStatementTraverser {
           if (this.variableMap.has(childrenPath.node.name)) {
             const value = this.variableMap.get(childrenPath.node.name);
             if (value) {
-              // console.log(`REPLACED ${path.node.name} WITH ${generate(value).code}`);
+              // Replace identifier with its known value
               childrenPath.replaceWith(value);
               childrenPath.skip();
             }

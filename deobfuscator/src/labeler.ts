@@ -1,3 +1,18 @@
+/**
+ * Labeler Class
+ * 
+ * The Labeler is responsible for deobfuscating Shape Security's VM script
+ * by identifying and labeling key components:
+ * - Virtual machine registers
+ * - Stack operations
+ * - Program counter
+ * - Bytecode arrays
+ * - Opcode handlers
+ * 
+ * It removes proxy obfuscation and makes the VM structure readable
+ * for further processing by the Tracer.
+ */
+
 import traverse from '@babel/traverse';
 import fs from 'fs'
 import * as babel from "@babel/core";
@@ -6,18 +21,22 @@ import generate from '@babel/generator';
 import crypto from 'crypto'
 import { parse } from '@babel/parser';
 
+/**
+ * Configuration tracking various counters used during labeling.
+ * These help generate unique names for different VM components.
+ */
 interface Config {
-    memberCounter: number
-    numberCounter: number
-    binaryCounter: number
-    lengthCounter: number
-    arrayCounter: number
-    byteCounter: number
-    popCount: number
-    stringCount: number
-    variableCount: number
-    fnCallCount: number
-    newDeclCount: number
+    memberCounter: number      // Tracks member access operations
+    numberCounter: number       // Tracks numeric literal operations
+    binaryCounter: number       // Tracks binary operations
+    lengthCounter: number       // Tracks length property access
+    arrayCounter: number        // Tracks array operations
+    byteCounter: number         // Tracks bytecode operations
+    popCount: number            // Tracks stack pop operations
+    stringCount: number         // Tracks string operations
+    variableCount: number       // Tracks variable declarations
+    fnCallCount: number         // Tracks function calls
+    newDeclCount: number        // Tracks new declarations
     
 }
 
@@ -30,20 +49,32 @@ export class Labeler {
         this.ast = ast
     }
 
+    /**
+     * Main entry point for labeling the virtual machine.
+     * 
+     * This method:
+     * 1. Labels the VM environment (registers, stack, etc.)
+     * 2. Labels individual opcode handlers
+     * 3. Returns the deobfuscated code as a string
+     * 
+     * @returns The labeled VM code as a string
+     */
     labelVirtualMachine(): string {
 
         this.labelVirtualMachineEnvironment()
         this.labelOpcodeHandlers()
-      
-        
-   
-
-        // this.injectTracer()
 
         return generate(this.ast).code
     }
 
-    
+    /**
+     * Renames a variable in the AST to a more meaningful name.
+     * Handles different node types: VariableDeclaration, FunctionDeclaration, etc.
+     * 
+     * @param path - The Babel traversal path
+     * @param node - The AST node to rename
+     * @param newName - The new name to assign
+     */
     private renameVariable(path: babel.NodePath < babel.types.BlockStatement | babel.types.FunctionDeclaration | babel.types.FunctionExpression > | babel.NodePath < babel.types.Statement > , node: babel.types.Statement | babel.types.MemberExpression | babel.types.Identifier, newName: string) {
         if (node.type == "VariableDeclaration") {
             if (node.declarations.length == 1) {

@@ -1,3 +1,18 @@
+/**
+ * JavaScript Lifter
+ * 
+ * This class converts the Intermediate Representation (IR) into JavaScript
+ * Abstract Syntax Tree (AST) using Babel. The AST can then be converted
+ * into readable JavaScript code.
+ * 
+ * Key responsibilities:
+ * - Convert IR operations to JavaScript AST nodes
+ * - Reconstruct function declarations
+ * - Generate control flow (if/else, jumps as function calls)
+ * - Track stack and register state
+ * - Build executable JavaScript structure
+ */
+
 import traverse from "@babel/traverse";
 import fs from "fs";
 import * as babel from "@babel/core";
@@ -17,30 +32,33 @@ import {
 } from "./types";
 
 export class JavascriptLifter {
-  // stackTrace: {[key: string]: Opcode[][]}
 
   ir: IntermediateRepresentation;
   ast: babel.types.File;
   contexts: Context[];
 
-  // registers just keeps track of initalized register indexes, registers is globally shared
-  // registers: Map<number, boolean>;
+  // Tracks expected parameter counts for different instruction types
   instructionLengthAssertion: Map<Instruction, number>;
 
   constructor(rep: IntermediateRepresentation) {
-    // this.stackTrace = stackTrace
+    // Initialize with a basic AST containing global object
     this.ast = parse(`const globalObj = {}`);
+    
+    // Context stack tracks the current scope during lifting
     this.contexts = [
       {
         label: "_main",
         parentBody: this.ast.program.body,
-        stack: new Map<number, boolean>(),
+        stack: new Map<number, boolean>(),        // Tracks initialized stack slots
         statements: this.ast.program.body,
-        registers: new Map<number, boolean>()
+        registers: new Map<number, boolean>()     // Tracks initialized registers
       },
     ];
     
     this.ir = rep;
+    
+    // Define expected argument counts for each instruction type
+    // -1 means variable length
     this.instructionLengthAssertion = new Map<Instruction, number>([
       ["PUSH", 2],
       ["SET", 2],

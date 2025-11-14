@@ -1,3 +1,18 @@
+/**
+ * Intermediate Representation (IR) Lifter
+ * 
+ * This class converts raw execution traces from the VM into a structured
+ * intermediate representation. The IR provides a higher-level view of the
+ * bytecode execution that can be more easily converted to JavaScript.
+ * 
+ * Key responsibilities:
+ * - Parse and structure execution traces
+ * - Build control flow graphs
+ * - Identify basic blocks and their relationships
+ * - Remove duplicate execution paths
+ * - Create function representations with block hierarchies
+ */
+
 import {
   FunctionRepresentation,
   Opcode,
@@ -23,10 +38,22 @@ export class IntermediateRepresentationLifter {
     this.blockMap = new Map<string, Block[]>();
   }
 
+  /**
+   * Generates an MD5 hash of an object for deduplication purposes.
+   * 
+   * @param obj - The object to hash
+   * @returns MD5 hash string
+   */
   private getHash(obj: any) {
     return crypto.createHash("md5").update(JSON.stringify(obj)).digest("hex");
   }
 
+  /**
+   * Removes duplicate traces based on content hash.
+   * This eliminates redundant execution paths that were captured multiple times.
+   * 
+   * @param mapOfTraces - Map of trace arrays to deduplicate
+   */
   private removeDuplicates(mapOfTraces: Map<string, any[]>) {
     mapOfTraces.forEach((traces, key) => {
       const seenHashes: string[] = [];
@@ -43,6 +70,14 @@ export class IntermediateRepresentationLifter {
       mapOfTraces.set(key, uniqueTraces);
     });
   }
+  
+  /**
+   * Builds a map of basic blocks from execution traces.
+   * Groups operations by their block ID to create the control flow structure.
+   * 
+   * @param traces - Array of function execution traces
+   * @returns Map of block IDs to block arrays
+   */
   private getBlockMap(traces: FunctionTrace[]): Map<string, Block[]> {
     var blockMap = new Map<string, Block[]>();
 
